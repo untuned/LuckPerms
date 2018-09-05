@@ -54,6 +54,14 @@ public interface MetaType extends NodeType, Map.Entry<String, String> {
     String getKey();
 
     /**
+     * Gets the priority of the meta assignment.
+     *
+     * @return the priority
+     * @since 4.3
+     */
+    int getPriority();
+
+    /**
      * Gets the meta value.
      *
      * @return the meta value

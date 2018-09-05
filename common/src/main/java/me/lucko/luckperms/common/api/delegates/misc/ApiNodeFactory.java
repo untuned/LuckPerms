@@ -79,6 +79,14 @@ public final class ApiNodeFactory implements me.lucko.luckperms.api.NodeFactory 
 
     @Nonnull
     @Override
+    public Node.Builder makeMetaNode(@Nonnull String key, @Nonnull String value, int priority) {
+        Objects.requireNonNull(key, "key");
+        Objects.requireNonNull(value, "value");
+        return NodeFactory.buildMetaNode(key, value, priority);
+    }
+
+    @Nonnull
+    @Override
     public Node.Builder makeChatMetaNode(@Nonnull ChatMetaType type, int priority, @Nonnull String value) {
         Objects.requireNonNull(type, "type");
         Objects.requireNonNull(value, "value");

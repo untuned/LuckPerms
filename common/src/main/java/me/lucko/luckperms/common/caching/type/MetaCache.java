@@ -36,7 +36,7 @@ import me.lucko.luckperms.api.caching.MetaData;
 import me.lucko.luckperms.api.metastacking.MetaStackDefinition;
 import me.lucko.luckperms.common.metastacking.MetaStack;
 
-import java.util.List;
+import java.util.Collection;
 import java.util.Map;
 import java.util.SortedMap;
 
@@ -66,20 +66,26 @@ public class MetaCache implements MetaData {
     public void loadMeta(MetaAccumulator meta) {
         meta.complete();
 
-        this.metaMultimap = ImmutableListMultimap.copyOf(meta.getMeta());
+        Map<String, ListMultimap<Integer, String>> rawMeta = meta.getMeta();
 
-        //noinspection unchecked
-        Map<String, List<String>> metaMap = (Map) this.metaMultimap.asMap();
+        ImmutableListMultimap.Builder<String, String> metaBuilder = ImmutableListMultimap.builder();
         ImmutableMap.Builder<String, String> metaMapBuilder = ImmutableMap.builder();
 
-        for (Map.Entry<String, List<String>> e : metaMap.entrySet()) {
-            if (e.getValue().isEmpty()) {
-                continue;
-            }
+        for (Map.Entry<String, ListMultimap<Integer, String>> entry : rawMeta.entrySet()) {
+            String key = entry.getKey();
+            Collection<String> values = entry.getValue().values();
 
-            // take the value which was accumulated first
-            metaMapBuilder.put(e.getKey(), e.getValue().get(0));
+            boolean first = true;
+            for (String value : values) {
+                if (first) {
+                    metaMapBuilder.put(key, value);
+                    first = false;
+                }
+                metaBuilder.put(key, value);
+            }
         }
+
+        this.metaMultimap = metaBuilder.build();
         this.meta = metaMapBuilder.build();
 
         this.prefixes = ImmutableSortedMap.copyOfSorted(meta.getPrefixes());

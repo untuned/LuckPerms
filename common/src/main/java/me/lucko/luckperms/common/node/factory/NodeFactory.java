@@ -56,6 +56,10 @@ public final class NodeFactory {
         return new NodeBuilder(metaNode(key, value));
     }
 
+    public static Node.Builder buildMetaNode(String key, String value, int priority) {
+        return new NodeBuilder(metaNode(key, value, priority));
+    }
+
     public static Node.Builder buildChatMetaNode(ChatMetaType type, int priority, String s) {
         return type == ChatMetaType.PREFIX ? buildPrefixNode(priority, s) : buildSuffixNode(priority, s);
     }
@@ -89,7 +93,15 @@ public final class NodeFactory {
     }
 
     public static String metaNode(String key, String value) {
-        return NodeTypes.META_NODE_MARKER + LegacyNodeFactory.escapeCharacters(key) + "." + LegacyNodeFactory.escapeCharacters(value);
+        return metaNode(key, value, 0);
+    }
+
+    public static String metaNode(String key, String value, int priority) {
+        if (priority == 0) {
+            return NodeTypes.META_NODE_MARKER + LegacyNodeFactory.escapeCharacters(key) + "." + LegacyNodeFactory.escapeCharacters(value);
+        }
+
+        return NodeTypes.META_NODE_MARKER + LegacyNodeFactory.escapeCharacters(key) + "." + priority + "." + LegacyNodeFactory.escapeCharacters(value);
     }
 
     public static String weightNode(int weight) {

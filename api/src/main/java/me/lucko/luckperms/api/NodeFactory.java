@@ -90,6 +90,19 @@ public interface NodeFactory {
     Node.Builder makeMetaNode(@Nonnull String key, @Nonnull String value);
 
     /**
+     * Creates a node builder from a key value pair
+     *
+     * @param key   the key
+     * @param value the value
+     * @param priority the priority
+     * @return a node builder instance
+     * @throws NullPointerException if the key or value is null
+     * @since 4.3
+     */
+    @Nonnull
+    Node.Builder makeMetaNode(@Nonnull String key, @Nonnull String value, int priority);
+
+    /**
      * Creates a node builder for the given chat meta type
      *
      * @param type the type

@@ -25,8 +25,8 @@
 
 package me.lucko.luckperms.common.caching.type;
 
-import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ListMultimap;
+import com.google.common.collect.Multimaps;
 
 import me.lucko.luckperms.api.ChatMetaType;
 import me.lucko.luckperms.api.LocalizedNode;
@@ -39,7 +39,9 @@ import me.lucko.luckperms.common.metastacking.SimpleMetaStack;
 import me.lucko.luckperms.common.node.model.NodeTypes;
 import me.lucko.luckperms.common.plugin.LuckPermsPlugin;
 
+import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.SortedMap;
@@ -71,7 +73,7 @@ public class MetaAccumulator {
 
     private final AtomicReference<State> state = new AtomicReference<>(State.ACCUMULATING);
 
-    private final ListMultimap<String, String> meta;
+    private final Map<String, ListMultimap<Integer, String>> meta;
     private final SortedMap<Integer, String> prefixes;
     private final SortedMap<Integer, String> suffixes;
     private int weight = 0;
@@ -82,7 +84,7 @@ public class MetaAccumulator {
     public MetaAccumulator(MetaStack prefixStack, MetaStack suffixStack) {
         Objects.requireNonNull(prefixStack, "prefixStack");
         Objects.requireNonNull(suffixStack, "suffixStack");
-        this.meta = ArrayListMultimap.create();
+        this.meta = new HashMap<>();
         this.prefixes = new TreeMap<>(Comparator.reverseOrder());
         this.suffixes = new TreeMap<>(Comparator.reverseOrder());
         this.prefixStack = prefixStack;
@@ -108,7 +110,7 @@ public class MetaAccumulator {
 
         // perform final changes
         if (!this.meta.containsKey(NodeTypes.WEIGHT_KEY) && this.weight != 0) {
-            this.meta.put(NodeTypes.WEIGHT_KEY, String.valueOf(this.weight));
+            putMeta(NodeTypes.WEIGHT_KEY, String.valueOf(this.weight), 0);
         }
     }
 
@@ -118,7 +120,7 @@ public class MetaAccumulator {
         ensureState(State.ACCUMULATING);
 
         n.getTypeData(MetaType.KEY).ifPresent(metaType ->
-                this.meta.put(metaType.getKey(), metaType.getValue())
+                putMeta(metaType.getKey(), metaType.getValue(), metaType.getPriority())
         );
 
         n.getTypeData(PrefixType.KEY).ifPresent(prefix -> {
@@ -132,9 +134,14 @@ public class MetaAccumulator {
         });
     }
 
+    private void putMeta(String key, String value, int priority) {
+        ListMultimap<Integer, String> values = this.meta.computeIfAbsent(key, s -> Multimaps.newListMultimap(new TreeMap<>(Comparator.reverseOrder()), ArrayList::new));
+        values.put(priority, value);
+    }
+
     public void accumulateMeta(String key, String value) {
         ensureState(State.ACCUMULATING);
-        this.meta.put(key, value);
+        putMeta(key, value, 0);
     }
 
     public void accumulateWeight(int weight) {
@@ -144,7 +151,7 @@ public class MetaAccumulator {
 
     // read methods
 
-    public ListMultimap<String, String> getMeta() {
+    public Map<String, ListMultimap<Integer, String>> getMeta() {
         ensureState(State.COMPLETE);
         return this.meta;
     }

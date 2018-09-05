@@ -43,6 +43,7 @@ import me.lucko.luckperms.common.utils.PatternCache;
 
 import java.util.IdentityHashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -70,6 +71,7 @@ public final class NodeTypes {
 
     // used to split prefix/suffix/meta nodes
     private static final Splitter META_SPLITTER = Splitter.on(PatternCache.compileDelimiterPattern(".", "\\")).limit(2);
+    private static final Splitter UNBOUNDED_META_SPLITTER = Splitter.on(PatternCache.compileDelimiterPattern(".", "\\"));
 
     @Nonnull
     public static Map<NodeTypeKey<?>, NodeType> parseTypes(String s) {
@@ -134,17 +136,34 @@ public final class NodeTypes {
             return null;
         }
 
-        Iterator<String> metaParts = META_SPLITTER.split(s.substring(META_NODE_MARKER.length())).iterator();
+        List<String> metaParts = UNBOUNDED_META_SPLITTER.splitToList(s.substring(META_NODE_MARKER.length()));
+        // meta.key.value
+        // meta.key.priority.value
 
-        if (!metaParts.hasNext()) return null;
-        String key = metaParts.next();
+        if (metaParts.size() != 3 && metaParts.size() != 4) {
+            return null;
+        }
 
-        if (!metaParts.hasNext()) return null;
-        String value = metaParts.next();
+        String key = metaParts.get(1);
+        int priority;
+        String value;
+
+        if (metaParts.size() == 4) {
+            String priorityString = metaParts.get(2);
+            try {
+                priority = Integer.parseInt(priorityString);
+            } catch (IllegalArgumentException e) {
+                return null;
+            }
+            value = metaParts.get(3);
+        } else {
+            priority = 0;
+            value = metaParts.get(2);
+        }
 
         return new Meta(
                 LegacyNodeFactory.unescapeCharacters(key).intern(),
-                LegacyNodeFactory.unescapeCharacters(value).intern()
+                priority, LegacyNodeFactory.unescapeCharacters(value).intern()
         );
     }
 
@@ -260,10 +279,12 @@ public final class NodeTypes {
 
     private static final class Meta implements MetaType {
         private final String key;
+        private final int priority;
         private final String value;
 
-        private Meta(String key, String value) {
+        private Meta(String key, int priority, String value) {
             this.key = key;
+            this.priority = priority;
             this.value = value;
         }
 
@@ -271,6 +292,11 @@ public final class NodeTypes {
         @Override
         public String getKey() {
             return this.key;
+        }
+
+        @Override
+        public int getPriority() {
+            return this.priority;
         }
 
         @Nonnull
@@ -285,17 +311,18 @@ public final class NodeTypes {
             if (o == null || getClass() != o.getClass()) return false;
             Meta that = (Meta) o;
             return Objects.equals(this.key, that.key) &&
+                    this.priority == that.priority &&
                     Objects.equals(this.value, that.value);
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(this.key, this.value);
+            return Objects.hash(this.key, this.priority, this.value);
         }
 
         @Override
         public String toString() {
-            return "MetaType{key='" + this.key + "', value='" + this.value + "'}";
+            return "MetaType{key='" + this.key + "', priority=" + this.priority + ", value='" + this.value + "'}";
         }
     }
     
